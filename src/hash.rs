@@ -50,6 +50,19 @@ impl Hash {
         }
     }
 
+    pub fn digest_base64(&self) -> String {
+        STANDARD_BASE64.encode(self.digest())
+    }
+
+    pub fn from_algorithm_digest_str(algorithm: Algorithm, digest: &str) -> Result<Hash, Error> {
+        Hash::from_algorithm_digest(
+            algorithm,
+            &STANDARD_BASE64
+                .decode(digest)
+                .map_err(|e| Error::ParseIntegrityError(e.to_string()))?,
+        )
+    }
+
     pub fn from_algorithm_digest(algorithm: Algorithm, digest: &[u8]) -> Result<Hash, Error> {
         match algorithm {
             Algorithm::Sha512 => {
@@ -134,12 +147,7 @@ impl Ord for Hash {
 }
 impl fmt::Display for Hash {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{}-{}",
-            self.algorithm(),
-            STANDARD_BASE64.encode(self.digest())
-        )
+        write!(f, "{}-{}", self.algorithm(), self.digest_base64())
     }
 }
 
