@@ -273,6 +273,13 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn bad_length() {
+        // TODO - test the actual error returned when it's more valuable
+        "sha1-deadbeef==".parse::<Hash>().unwrap();
+    }
+
+    #[test]
     fn ordering() {
         let mut arr = [
             Hash::Sha1([0; 20]),
