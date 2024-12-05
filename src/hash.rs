@@ -266,17 +266,15 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn bad_algorithm() {
         // TODO - test the actual error returned when it's more valuable
-        "sha7-deadbeef==".parse::<Hash>().unwrap();
+        assert!("sha7-deadbeef==".parse::<Hash>().is_err());
     }
 
     #[test]
-    #[should_panic]
     fn bad_length() {
         // TODO - test the actual error returned when it's more valuable
-        "sha1-deadbeef==".parse::<Hash>().unwrap();
+        assert!("sha1-deadbeef==".parse::<Hash>().is_err());
     }
 
     #[test]
