@@ -46,7 +46,7 @@ impl IntegrityChecker {
         wanted
             .hashes
             .iter()
-            .take_while(|h| h.algorithm == algo)
+            .take_while(|h| h.algorithm() == algo)
             .find(|&h| *h == sri.hashes[0])
             .map(|_| algo)
             .ok_or(Error::IntegrityCheckError(wanted, sri))
@@ -67,7 +67,7 @@ mod tests {
     }
     #[test]
     fn multi_hash() {
-        let sri = "sha256-deadbeef"
+        let sri = "sha256-K68fQBBdlQH+MZqOxGP99DJaKl30Ra3z9XL2JiU2eMk="
             .parse::<Integrity>()
             .unwrap()
             .concat(Integrity::from(b"hello world"));

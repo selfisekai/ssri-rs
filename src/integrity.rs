@@ -6,8 +6,6 @@ use crate::errors::Error;
 use crate::hash::Hash;
 use crate::opts::IntegrityOpts;
 
-use base64::Engine as _;
-
 #[cfg(feature = "serde")]
 use serde::de::{self, Deserialize, Deserializer, Visitor};
 #[cfg(feature = "serde")]
@@ -57,8 +55,8 @@ impl std::str::FromStr for Integrity {
     /// # Example
     /// ```
     /// use ssri::Integrity;
-    /// let sri: Integrity = "sha256-deadbeef".parse().unwrap();
-    /// assert_eq!(sri.to_string(), String::from("sha256-deadbeef"));
+    /// let sri: Integrity = "sha256-k63TISJB5G28nmvTvBC8wJl+UtU2gN0AUTzuGEDLeiY=".parse().unwrap();
+    /// assert_eq!(sri.to_string(), String::from("sha256-k63TISJB5G28nmvTvBC8wJl+UtU2gN0AUTzuGEDLeiY="));
     /// ```
     fn from_str(s: &str) -> Result<Integrity, Self::Err> {
         let mut hashes = String::from(s)
@@ -114,12 +112,12 @@ impl Integrity {
     /// ```
     /// use ssri::{Integrity, Algorithm};
     ///
-    /// let sri: Integrity = "sha1-deadbeef sha256-badc0ffee".parse().unwrap();
+    /// let sri: Integrity = "sha1-ganV9A0GoBQYl55wq5D7xpWtzSg= sha256-k63TISJB5G28nmvTvBC8wJl+UtU2gN0AUTzuGEDLeiY=".parse().unwrap();
     /// let algorithm = sri.pick_algorithm();
     /// assert_eq!(algorithm, Algorithm::Sha256);
     /// ```
     pub fn pick_algorithm(&self) -> Algorithm {
-        self.hashes[0].algorithm
+        self.hashes[0].algorithm()
     }
 
     /// Create a new `Integrity` based on `data`. Use
@@ -149,10 +147,9 @@ impl Integrity {
     /// assert_eq!(Integrity::from_hex(hex, Algorithm::Sha256).unwrap(), expected);
     ///```
     pub fn from_hex<B: AsRef<[u8]>>(hex: B, algorithm: Algorithm) -> Result<Integrity, Error> {
-        let b16 = hex::decode(hex).map_err(|e| Error::HexDecodeError(e.to_string()))?;
-        let digest = base64::prelude::BASE64_STANDARD.encode(b16);
+        let digest = hex::decode(hex).map_err(|e| Error::HexDecodeError(e.to_string()))?;
         Ok(Integrity {
-            hashes: vec![Hash { algorithm, digest }],
+            hashes: vec![Hash::from_algorithm_digest(algorithm, &digest)?],
         })
     }
 
@@ -162,10 +159,10 @@ impl Integrity {
     /// # Example
     /// ```
     /// use ssri::Integrity;
-    /// let sri1: Integrity = "sha256-deadbeef".parse().unwrap();
-    /// let sri2: Integrity = "sha256-badc0ffee".parse().unwrap();
+    /// let sri1: Integrity = "sha256-a4ayc/80/OGda4BO/1o/V0etpOqiLx1JwB5S3beHW0s=".parse().unwrap();
+    /// let sri2: Integrity = "sha256-1HNeOiZeFu7gP1lxi5tdAwGcB9i2xR+Q2jpmbuwTqzU=".parse().unwrap();
     /// let sri3 = sri1.concat(sri2);
-    /// assert_eq!(sri3.to_string(), "sha256-deadbeef sha256-badc0ffee".to_owned());
+    /// assert_eq!(sri3.to_string(), "sha256-a4ayc/80/OGda4BO/1o/V0etpOqiLx1JwB5S3beHW0s= sha256-1HNeOiZeFu7gP1lxi5tdAwGcB9i2xR+Q2jpmbuwTqzU=".to_owned());
     /// ```
     pub fn concat(&self, other: Integrity) -> Self {
         let mut hashes = [self.hashes.clone(), other.hashes].concat();
@@ -205,14 +202,7 @@ impl Integrity {
     /// ```
     pub fn to_hex(&self) -> (Algorithm, String) {
         let hash = self.hashes.get(0).unwrap();
-        (
-            hash.algorithm,
-            hex::encode(
-                base64::prelude::BASE64_STANDARD
-                    .decode(&hash.digest)
-                    .unwrap(),
-            ),
-        )
+        (hash.algorithm(), hex::encode(&hash.digest()))
     }
 
     /// Compares `self` against a given SRI to see if there's a match. The
@@ -231,15 +221,15 @@ impl Integrity {
         let algo = other.pick_algorithm();
         self.hashes
             .iter()
-            .filter(|h| h.algorithm == algo)
+            .filter(|h| h.algorithm() == algo)
             .find(|&h| {
                 other
                     .hashes
                     .iter()
-                    .filter(|i| i.algorithm == algo)
+                    .filter(|i| i.algorithm() == algo)
                     .any(|i| h == i)
             })
-            .map(|h| h.algorithm)
+            .map(|h| h.algorithm())
     }
 }
 
@@ -249,13 +239,13 @@ mod tests {
 
     #[test]
     fn parse() {
-        let sri: Integrity = "sha1-deadbeef=".parse().unwrap();
+        let sri: Integrity = "sha1-ganV9A0GoBQYl55wq5D7xpWtzSg=".parse().unwrap();
         assert_eq!(
             sri.hashes.get(0).unwrap(),
-            &Hash {
-                algorithm: Algorithm::Sha1,
-                digest: String::from("deadbeef=")
-            }
+            &Hash::Sha1([
+                129, 169, 213, 244, 13, 6, 160, 20, 24, 151, 158, 112, 171, 144, 251, 198, 149,
+                173, 205, 40
+            ])
         )
     }
 
@@ -304,13 +294,13 @@ mod tests {
             integrity: Integrity,
         }
 
-        let json = r#"{ "integrity": "sha1-deadbeef" }"#;
+        let json = r#"{ "integrity": "sha1-ganV9A0GoBQYl55wq5D7xpWtzSg=" }"#;
         let de: Thing = serde_json::from_str(json).unwrap();
 
         assert_eq!(
             de,
             Thing {
-                integrity: "sha1-deadbeef".parse().unwrap()
+                integrity: "sha1-ganV9A0GoBQYl55wq5D7xpWtzSg=".parse().unwrap()
             }
         );
     }
@@ -325,10 +315,10 @@ mod tests {
         }
 
         let thing = Thing {
-            integrity: "sha1-deadbeef".parse().unwrap(),
+            integrity: "sha1-ganV9A0GoBQYl55wq5D7xpWtzSg=".parse().unwrap(),
         };
         let ser = serde_json::to_string(&thing).unwrap();
-        let json = r#"{"integrity":"sha1-deadbeef"}"#;
+        let json = r#"{"integrity":"sha1-ganV9A0GoBQYl55wq5D7xpWtzSg="}"#;
 
         assert_eq!(ser, json);
     }
