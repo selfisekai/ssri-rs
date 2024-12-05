@@ -159,73 +159,80 @@ impl std::str::FromStr for Hash {
             .next()
             .ok_or_else(|| Error::ParseIntegrityError(s.into()))?
             .trim_end();
-        let digest = STANDARD_BASE64
-            .decode(digest_str)
-            .map_err(|e| Error::ParseIntegrityError(e.to_string()))?;
         Ok(match algorithm {
             Algorithm::Sha512 => {
                 let mut hash = [0; 64];
-                if digest.len() != hash.len() {
+                let decoded_size = STANDARD_BASE64
+                    .decode_slice(digest_str, &mut hash)
+                    .map_err(|e| Error::ParseIntegrityError(e.to_string()))?;
+                if decoded_size != hash.len() {
                     return Err(Error::ParseIntegrityError(format!(
                         "Parsed {} bytes of hash - a {} hash should be {} bytes long",
-                        digest.len(),
+                        decoded_size,
                         algorithm,
                         hash.len()
                     )));
                 }
-                hash.copy_from_slice(&digest);
                 Hash::Sha512(hash)
             }
             Algorithm::Sha384 => {
                 let mut hash = [0; 48];
-                if digest.len() != hash.len() {
+                let decoded_size = STANDARD_BASE64
+                    .decode_slice(digest_str, &mut hash)
+                    .map_err(|e| Error::ParseIntegrityError(e.to_string()))?;
+                if decoded_size != hash.len() {
                     return Err(Error::ParseIntegrityError(format!(
                         "Parsed {} bytes of hash - a {} hash should be {} bytes long",
-                        digest.len(),
+                        decoded_size,
                         algorithm,
                         hash.len()
                     )));
                 }
-                hash.copy_from_slice(&digest);
                 Hash::Sha384(hash)
             }
             Algorithm::Sha256 => {
                 let mut hash = [0; 32];
-                if digest.len() != hash.len() {
+                let decoded_size = STANDARD_BASE64
+                    .decode_slice(digest_str, &mut hash)
+                    .map_err(|e| Error::ParseIntegrityError(e.to_string()))?;
+                if decoded_size != hash.len() {
                     return Err(Error::ParseIntegrityError(format!(
                         "Parsed {} bytes of hash - a {} hash should be {} bytes long",
-                        digest.len(),
+                        decoded_size,
                         algorithm,
                         hash.len()
                     )));
                 }
-                hash.copy_from_slice(&digest);
                 Hash::Sha256(hash)
             }
             Algorithm::Sha1 => {
                 let mut hash = [0; 20];
-                if digest.len() != hash.len() {
+                let decoded_size = STANDARD_BASE64
+                    .decode_slice(digest_str, &mut hash)
+                    .map_err(|e| Error::ParseIntegrityError(e.to_string()))?;
+                if decoded_size != hash.len() {
                     return Err(Error::ParseIntegrityError(format!(
                         "Parsed {} bytes of hash - a {} hash should be {} bytes long",
-                        digest.len(),
+                        decoded_size,
                         algorithm,
                         hash.len()
                     )));
                 }
-                hash.copy_from_slice(&digest);
                 Hash::Sha1(hash)
             }
             Algorithm::Xxh3 => {
                 let mut hash = [0; 16];
-                if digest.len() != hash.len() {
+                let decoded_size = STANDARD_BASE64
+                    .decode_slice(digest_str, &mut hash)
+                    .map_err(|e| Error::ParseIntegrityError(e.to_string()))?;
+                if decoded_size != hash.len() {
                     return Err(Error::ParseIntegrityError(format!(
                         "Parsed {} bytes of hash - a {} hash should be {} bytes long",
-                        digest.len(),
+                        decoded_size,
                         algorithm,
                         hash.len()
                     )));
                 }
-                hash.copy_from_slice(&digest);
                 Hash::Xxh3(hash)
             }
         })
@@ -272,9 +279,17 @@ mod tests {
     }
 
     #[test]
-    fn bad_length() {
+    fn bad_length_short() {
         // TODO - test the actual error returned when it's more valuable
         assert!("sha1-deadbeef==".parse::<Hash>().is_err());
+    }
+
+    #[test]
+    fn bad_length_long() {
+        // TODO - test the actual error returned when it's more valuable
+        assert!("sha1-deadbeefdeadbeefdeadbeefdeadbeef=="
+            .parse::<Hash>()
+            .is_err());
     }
 
     #[test]
