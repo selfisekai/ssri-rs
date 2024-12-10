@@ -1,9 +1,11 @@
 use std::fmt;
 
 use crate::algorithm::Algorithm;
+#[cfg(feature = "hasher")]
 use crate::checker::IntegrityChecker;
 use crate::errors::Error;
 use crate::hash::Hash;
+#[cfg(feature = "hasher")]
 use crate::opts::IntegrityOpts;
 
 use base64::Engine as _;
@@ -131,6 +133,7 @@ impl Integrity {
     /// let sri = Integrity::from(b"hello");
     /// assert_eq!(sri.to_string(), "sha256-LPJNul+wow4m6DsqxbninhsWHlwfp0JecwQzYpOLmCQ=".to_owned());
     /// ```
+    #[cfg(feature = "hasher")]
     pub fn from<B: AsRef<[u8]>>(data: B) -> Integrity {
         IntegrityOpts::new()
             .algorithm(Algorithm::Sha256)
@@ -185,6 +188,7 @@ impl Integrity {
     /// let algorithm = sri.check(b"hello").unwrap();
     /// assert_eq!(algorithm, Algorithm::Sha256);
     /// ```
+    #[cfg(feature = "hasher")]
     pub fn check<B: AsRef<[u8]>>(&self, data: B) -> Result<Algorithm, Error> {
         let mut checker = IntegrityChecker::new(self.clone());
         checker.input(&data);
@@ -245,7 +249,10 @@ impl Integrity {
 
 #[cfg(test)]
 mod tests {
-    use super::{Algorithm, Hash, Integrity, IntegrityOpts};
+    use super::{Algorithm, Hash, Integrity};
+
+    #[cfg(feature = "hasher")]
+    use super::IntegrityOpts;
 
     #[test]
     fn parse() {
@@ -260,6 +267,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "hasher")]
     fn from_hex() {
         let expected_integrity = Integrity::from(b"hello world");
         let hex = String::from("b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9");
@@ -270,6 +278,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "hasher")]
     fn to_hex() {
         let sri = Integrity::from(b"hello world");
         assert_eq!(
@@ -282,6 +291,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "hasher")]
     fn matches() {
         let sri1 = IntegrityOpts::new()
             .algorithm(Algorithm::Sha512)
@@ -296,6 +306,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn de_json() {
         use serde_derive::Deserialize;
 
@@ -316,6 +327,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "serde")]
     fn ser_json() {
         use serde_derive::Serialize;
 

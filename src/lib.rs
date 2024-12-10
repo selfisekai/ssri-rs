@@ -37,15 +37,19 @@ incremental/streamed data input.
 */
 
 mod algorithm;
+#[cfg(feature = "hasher")]
 mod checker;
 mod errors;
 mod hash;
 mod integrity;
+#[cfg(feature = "hasher")]
 mod opts;
 
 pub use algorithm::Algorithm::{self, *};
+#[cfg(feature = "hasher")]
 pub use checker::IntegrityChecker;
 pub use errors::Error;
 pub use hash::Hash;
 pub use integrity::Integrity;
+#[cfg(feature = "hasher")]
 pub use opts::IntegrityOpts;

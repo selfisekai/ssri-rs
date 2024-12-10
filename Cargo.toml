@@ -12,17 +12,20 @@ rust-version = "1.57.0"
 
 [dependencies]
 base64 = "0.21.0"
-digest = "0.10.6"
+digest = { version = "0.10.6", optional = true }
 hex = "0.4.3"
 miette = "5.7.0"
 serde = { version = "1.0.152", optional = true }
-sha-1 = "0.10.0"
-sha2 = "0.10.6"
+sha-1 = { version = "0.10.0", optional = true }
+sha2 = { version = "0.10.6", optional = true }
 thiserror = "1.0.40"
-xxhash-rust = { version = "0.8.6", features = ["xxh3"] }
+xxhash-rust = { version = "0.8.6", features = ["xxh3"], optional = true }
 
 [features]
-default = ["serde"]
+default = ["hasher", "serde"]
+
+# Enable [IntegrityChecker], [IntegrityOpts], and all algorithms
+hasher = ["digest", "sha-1", "sha2", "xxhash-rust"]
 
 [dev-dependencies]
 serde_derive = "1.0.152"
